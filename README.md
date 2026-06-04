@@ -6,8 +6,10 @@ Maku , Regular , Maku , Regular , INDIC , 1.97 MB , http://updates-http.cdn-appl
 
 运行convert_font.py需安装 opencc afdko
 
-pip3 install opencc afdko
+pip3 install opencc afdko --break-system-packages
 
+WSL位置
+%USERPROFILE% \AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\LocalState\rootfs\home\USER\.local\lib\python3.12\site-packages\afdko
 site-packages/afdko/otc2otf.py
 
     for ft_idx in range(num_fonts):
