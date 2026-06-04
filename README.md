@@ -22,7 +22,7 @@ site-packages/afdko/otc2otf.py
         font = TTFont(ttc_path, fontNumber=ft_idx, lazy=True, recalcTimestamp=False)
 解包ttc字体集时不会写入修改时间
 
-指令 spot -thead myfont.otf  查看 modified 时间
+指令 spot -thead myfont.otf  可查看 modified 时间
 
             save_path = os.path.join(os.path.dirname(ttc_path), font_filename)
             font.save(save_path)
