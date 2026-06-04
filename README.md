@@ -5,6 +5,7 @@ Apple LiSung , Light , 蘋果儷細宋 , 細宋 , CJK , 8.97 MB , http://updates
 Maku , Regular , Maku , Regular , INDIC , 1.97 MB , http://updates-http.cdn-apple.com/2020/mobileassets/001-26051/B1CF7C35-D704-4F2D-82D1-DCE47CD14C5C/com_apple_MobileAsset_Font6/c1d66362d7dec365afaa52921f7feb9c874e8a4a.zip
 
 运行convert_font.py需安装 opencc afdko
+
 pip3 install opencc afdko
 
 site-packages/afdko/otc2otf.py
@@ -17,7 +18,8 @@ site-packages/afdko/otc2otf.py
     for ft_idx in range(num_fonts):
         font = TTFont(ttc_path, fontNumber=ft_idx, lazy=True, recalcTimestamp=False)
 解包ttc字体集时不会写入修改时间
- 指令 spot -thead myfont.otf  查看 modified 时间
+
+指令 spot -thead myfont.otf  查看 modified 时间
 
             save_path = os.path.join(os.path.dirname(ttc_path), font_filename)
             font.save(save_path)
