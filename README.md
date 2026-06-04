@@ -9,14 +9,20 @@ pip3 install opencc afdko
 
 site-packages/afdko/otc2otf.py
 
-for ft_idx in range(num_fonts):
-   font = TTFont(ttc_path, fontNumber=ft_idx, lazy=True)
-改为font = TTFont(ttc_path, fontNumber=ft_idx, lazy=True, recalcTimestamp=False) #分解ttc之类字体集时不会写入修改时间
-   spot -thead myfont.otf 查看 modified 时间
+    for ft_idx in range(num_fonts):
+        font = TTFont(ttc_path, fontNumber=ft_idx, lazy=True)
+
+改为
+
+    for ft_idx in range(num_fonts):
+        font = TTFont(ttc_path, fontNumber=ft_idx, lazy=True, recalcTimestamp=False)
+解包ttc字体集时不会写入修改时间
+指令 spot -thead myfont.otf  查看 modified 时间
 
             save_path = os.path.join(os.path.dirname(ttc_path), font_filename)
             font.save(save_path)
 加入条件解包字体集略过.开头命名字体 windows不适用
+
+            save_path = os.path.join(os.path.dirname(ttc_path), font_filename)
             if not font_filename.startswith("."):
                 font.save(save_path)
-
