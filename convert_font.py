@@ -3,7 +3,7 @@ from fontTools.ttLib.tables._n_a_m_e import NameRecord
 import opencc
 import sys
 import os
-
+import shutil
 from afdko import fdkutils
 import struct
 import re
@@ -46,15 +46,13 @@ for filename in os.listdir(directory_path):
         report = fdkutils.runShellCmd(command)
         font = TTFont(filename, recalcTimestamp=False, recalcBBoxes=False) #禁用自动重算边界框
         if "failed" in report:
+            print('\033[31m' + f"{report}" + '\033[0m')
             print('\033[33m' + f"{filename} 文件验证存在问题，已校正" + '\033[0m')
-            print('\033[33m' + f"report" + '\033[0m')
             font.save(filename)
         else:
              print('\033[33m' + f"{filename} 检查文件校验\"通过\"." + '\033[0m')
         name_table = font['name']
         #print('\033[36m' + f"{fdkutils.runShellCmd("spot -t name \"%s\" | awk 'BEGIN {flag=0} /LangTag\\[index\\]/ {flag=1} {if (!flag) print}' 2>&1" % (filename))} ", end="")
-        print('\033[36m' + f"{fdkutils.runShellCmd("spot -t cmap \"%s\" | awk r'BEGIN {flag=0} /]=./ {flag=1} {if (!flag) print}' 2>&1" % (filename))} ", end="")
-        #print('\033[36m' + f"{fdkutils.runShellCmd("spot -t cmap=11 \"%s\" 2>&1" % (filename))} ", end="")
         #print(dir( name_table ), "\n")
         #print(f" {name_table.names}")
         #list(font.keys())
@@ -121,10 +119,11 @@ for filename in os.listdir(directory_path):
                     filechage += 1
                     print('\033[33m' + f"添加Windows平台英文 name {record.nameID}表" + '\033[0m')
         cmap_list = []
-        print(f"")
+        print('\033[36m' + f"{fdkutils.runShellCmd("spot -t cmap \"%s\" | awk r'BEGIN {flag=0} /]=./ {flag=1} {if (!flag) print}' 2>&1" % (filename))} ", end="")
+        #print('\033[36m' + f"{fdkutils.runShellCmd("spot -t cmap=11 \"%s\" 2>&1" % (filename))} ", end="")
         tables = font['cmap'].tables
         for index, table in enumerate(tables):
-           print('\033[33m' + f"cmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}" + '\033[0m')
+           print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}" + '\033[0m')
            cmap_list.append(f"{table.platformID}-{table.platEncID}")
         #print(f"cmap{cmap_list}")
         if any("3-" in elem for elem in cmap_list):
@@ -145,7 +144,7 @@ for filename in os.listdir(directory_path):
                 table.platformID  = 3
                 table.platEncID  = 1
                 filechage += 1
-                #os.copyfile(filename, filename + '.backup')
+                shutil.copyfile(filename, filename + '.backup')
                 print(f"强行修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
         if not '3-10' in cmap_list:
             if '0-4' in cmap_list:
@@ -160,7 +159,7 @@ for filename in os.listdir(directory_path):
                     #table.platEncID  = 10
                 #filechage += 1
                # if not os.path.exists(os.path.join(directory_path, filename) + '.backup'):
-                    #os.copyfile(filename, filename + '.backup')
+                    #shutil.copyfile(filename, filename + '.backup')
                 #print(f"强行修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
                 
         if 'x1-1' in cmap_list:
