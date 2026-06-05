@@ -10,6 +10,7 @@ import re
 import copy
 import math
 import time
+import binascii
 
 currentFile = __file__
 realPath = os.path.realpath(currentFile)
@@ -22,6 +23,27 @@ if len(sys.argv) != 2 or sys.argv[1] not in ['otf', 'ttf', 'ttc']:
     print('\033[33m' + "用法: python convert_font.py otf/ttf/ttc        处理脚本所在目录的所有指定文件类型字体" + '\033[0m')
     sys.exit(1)
 
+def checkfont(filename):
+    command = "sfntedit -c  \"%s\" 2>&1" % (filename)
+    report = fdkutils.runShellCmd(command)
+    lines = report.split('\n')
+    if "check failed" in report:
+        print('\033[31m' + f"{report}" + '\033[0m')
+        with open(filename, 'rb+') as file:
+            content = file.read(1000)
+            for line in lines:
+                if "bad sfnt.rangeShift" in line:
+                    x = re.findall(r"=(\w+)", line)
+                    num=int(x[1])
+                    fc="{:04x}".format(num)
+                    file.seek(10)
+                    file.write(binascii.unhexlify(fc))
+                if "checksum" in line.lower():
+                    m = re.findall(r"=(\w+)", line)
+                    if len(m[0]) == 8:
+                        offset = content.find(binascii.unhexlify(m[0]))
+                        file.seek(offset)
+                        file.write(binascii.unhexlify(m[1]))
 intype = sys.argv[1]
 t2s = opencc.OpenCC('t2s.json')
 s2t = opencc.OpenCC('s2t.json')
@@ -42,17 +64,18 @@ for filename in os.listdir(directory_path):
             output = filename.replace('.ttf', '.otf')
         fixname = filename.replace('.', 'fix.')
         #filename = 'PingFangHK-Light.otf'
-        #fdkutils.runShellCmd("sfntedit -c  \"%s\" 2>&1" % (filename))
-        fdkutils.runShellCmd("sfntedit -d DSIG \"%s\" 2>&1" % (filename))
+        #print(fdkutils.runShellCmd("tx -dump -0 \"%s\" 2>&1" % (filename)))
+        #fdkutils.runShellCmd("sfntedit -d DSIG \"%s\" 2>&1" % (filename)))
         command = "sfntedit -c  \"%s\" 2>&1" % (filename)
         report = fdkutils.runShellCmd(command)
-        font = TTFont(filename, recalcTimestamp=False, recalcBBoxes=False) #禁用自动重算边界框
         if "failed" in report:
-            print('\033[31m' + f"{report}" + '\033[0m')
-            print('\033[33m' + f"{filename} 文件验证存在问题，已校正" + '\033[0m')
-            font.save(filename)
+            checkfont(filename)
+            checkfont(filename)
+            checkfont(filename)
+            print('\033[33m' + f"{filename} 文件校验已修正." + '\033[0m')
         else:
-             print('\033[33m' + f"{filename} 检查文件校验\"通过\"." + '\033[0m')
+            print('\033[33m' + f"{filename} 文件校验\"通过\"." + '\033[0m')
+        font = TTFont(filename, recalcTimestamp=False, recalcBBoxes=False) #禁用自动重算边界框
         name_table = font['name']
         #print('\033[36m' + f"{fdkutils.runShellCmd("spot -t name \"%s\" | awk 'BEGIN {flag=0} /LangTag\\[index\\]/ {flag=1} {if (!flag) print}' 2>&1" % (filename))} ", end="")
         #print(dir( name_table ), "\n")
