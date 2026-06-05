@@ -9,6 +9,7 @@ import struct
 import re
 import copy
 import math
+import time
 
 currentFile = __file__
 realPath = os.path.realpath(currentFile)
@@ -61,7 +62,7 @@ for filename in os.listdir(directory_path):
         name_list = []
         for name in name_table.names:
             name_list.append(f"{name.platformID}-{name.nameID} {name.langID}")
-        print(f" {name_list}")
+        #print(f" {name_list}")
         for record in name_table.names:
             #print(f"name表:平台: {record.platformID}, 平台编码: {record.platEncID}, 编码: {record.getEncoding()}, 语言: {record.langID:>4}, 命名ID: {record.nameID:>2}, 描述: {record.toUnicode()}")
             #if record.nameID == 1 and record.platformID == 3:
@@ -147,9 +148,6 @@ for filename in os.listdir(directory_path):
                 table.platEncID  = 10
                 filechage += 1
                 print(f"修改 0 4 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-
-                shutil.copyfile(filename, filename + '.backup')
-                print(f"强行修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
         if '0-3' in cmap_list and '0-4' not in cmap_list:
             if '3-1' not in cmap_list:
                 table = font['cmap'].getcmap(0, 3)
@@ -157,7 +155,16 @@ for filename in os.listdir(directory_path):
                     table.platformID  = 3
                     table.platEncID  = 1
                     filechage += 1
-                    shutil.copyfile(filename, filename + '.backup')
+                    #shutil.copyfile(filename, filename + '.' + time.strftime("%M%S"))
+                    print(f"尝试修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
+        if 'x0-4' in cmap_list and '0-3' not in cmap_list:
+            if '3-1' not in cmap_list and '3-10' not in cmap_list:
+                table = font['cmap'].getcmap(0,4)
+                if font['cmap'].tables.index(table)==0:
+                    table.platformID  = 0
+                    table.platEncID  = 3
+                    filechage += 1
+                    #shutil.copyfile(filename, filename + '.' + time.strftime("%M%S"))
                     print(f"尝试修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
         if 'x3-10' in cmap_list:
             if '0-4' not in cmap_list:
@@ -199,14 +206,14 @@ for filename in os.listdir(directory_path):
         #print(f"Converted {filename} to {output}")
         #print(f"文件状态 {filechage}")
         if filechage != 0:
-            font.save(filename)
+            font.save(fixname)
             print('\033[33m' + f"{filename} table 修改已保存\n" + '\033[0m')
         else:
             print('\033[33m' + f"{filename} table 不作改动。\n" + '\033[0m')
         #font.save(filename)
         #print(f" { font['name'].names}")
 
-
+#   ttx -t cmap PingFangHK-Light.otf
 #   ttx -t name PingFangHK-Light.otf
 #   sfntedit -c WawaSC-Regular.otf
 #   spot -tcmap=11 WawaSC-Regular.otf
@@ -218,3 +225,16 @@ for filename in os.listdir(directory_path):
 #for file in *tf ; do  echo -e "\033[33m--- $file ---\033[0m";spot -t name $file | awk 'BEGIN {flag=0} /LangTag\[index\]=/ {flag=1} {if (!flag) print}';spot -tcmap=11 $file;spot -t cmap $file | awk 'BEGIN {flag=0} /\]=./ {flag=1} {if (!flag) print}';done
 #for file in *tf ; do  echo -e "\033[33m--- $file ---\033[0m";sfntedit -c $file;spot -T $file ;spot -tcmap=11 $file;spot -t cmap $file | awk 'BEGIN {flag=0} /\]=./ {flag=1} {if (!flag) print}';done
 #for file in *tf ; do  echo -e "\033[33m--- $file ---";echo -ne "`sfntedit -c $file`\033[0m";spot -tcmap=11 $file;spot -t cmap $file | awk 'BEGIN {flag=0} /\]=./ {flag=1} {if (!flag) print}';done
+#from fontTools.ttLib import TTFont
+#import fontTools.merge as merge
+ 
+# 加载字体并保留原始时间戳
+#font1 = TTFont("font1.ttf", recalcTimestamp=False, recalcBBoxes=False)
+#font2 = TTFont("font2.ttf", recalcTimestamp=False, recalcBBoxes=False)
+ 
+# 合并字体
+#merger = merge.Merger()
+#merged_font = merger.merge([font1, font2])
+ 
+# 保存合并结果，保持时间戳
+#merged_font.save("merged.ttf")

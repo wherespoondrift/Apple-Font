@@ -27,21 +27,24 @@ for filename in os.listdir(directory_path):
                             FontDesignLang = 'en'
                     else:
                          FontDesignLang = 'en'
-                    Flist.write(f'{FontInfo4[ 'FontFamilyName']} , {FontInfo4[ 'FontStyleName']}')
+                    Flist.write(f'{FontInfo4[ 'FontFamilyName']}\t{FontInfo4[ 'FontStyleName']}')
                     keys = list(FontInfo4['LocalizedFamilyNames'].keys())
                     keywords = ['en']
                     if not FontDesignLang in keys:
                         if len(keys)>1:
                             keys=[item for item in keys if item not in keywords]
                         FontDesignLang=keys[0]
-                    Flist.write(f' , {FontInfo4['LocalizedFamilyNames'][FontDesignLang]}')
+                    Flist.write(f'\t{FontInfo4['LocalizedFamilyNames'][FontDesignLang]}')
                     keys = list(FontInfo4['LocalizedStyleNames'].keys())
                     if not FontDesignLang in keys:
                         if len(keys)>1:
                             keys=[item for item in keys if item not in keywords]
                         FontDesignLang=keys[0]
-                    Flist.write(f' , {FontInfo4['LocalizedStyleNames'][FontDesignLang]}')
+                    Flist.write(f'\t{FontInfo4['LocalizedStyleNames'][FontDesignLang]}')
                     if 'Prerequisite' in FontInfo.keys():
-                        Flist.write(f' , {FontInfo[ 'Prerequisite'][0]}')
-                    Flist.write(f' , {format_size(FontInfo[ '_UnarchivedSize'])} , {FontInfo[ '__BaseURL']}{FontInfo[ '__RelativePath']}')
+                        Flist.write(f'\t{FontInfo[ 'Prerequisite'][0]}')
+                    else:
+                        Flist.write(f'\tnone')
+                    Flist.write(f'\t{format_size(FontInfo[ '_UnarchivedSize'])}\t\t{FontInfo[ '__BaseURL']}{FontInfo[ '__RelativePath']}')
                     Flist.write(f'\r\n')
+print(f'\r转化完成!')
