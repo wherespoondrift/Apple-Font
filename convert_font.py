@@ -1,16 +1,15 @@
-from fontTools.ttLib import TTFont
-from fontTools.ttLib.tables._n_a_m_e import NameRecord
-import opencc
-import sys
-import os
-import shutil
+from fontTools.ttLib import TTFont, TTCollection, newTable
+from fontTools.ttLib.tables._n_a_m_e import makeName, NameRecord
+from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 from afdko import fdkutils
+import opencc
+import binascii
+import sys, os, shutil
 import struct
 import re
 import copy
 import math
-import time
-import binascii
+import time, traceback
 
 currentFile = __file__
 realPath = os.path.realpath(currentFile)
@@ -44,6 +43,7 @@ def checkfont(filename):
                         offset = content.find(binascii.unhexlify(m[0]))
                         file.seek(offset)
                         file.write(binascii.unhexlify(m[1]))
+
 intype = sys.argv[1]
 t2s = opencc.OpenCC('t2s.json')
 s2t = opencc.OpenCC('s2t.json')
@@ -55,41 +55,23 @@ if intype == 'ttc':
     sys.exit(1)
 for filename in os.listdir(directory_path):
     file_path = os.path.join(directory_path, filename)
-    if os.path.isfile(file_path) and filename.endswith('.' + intype):  # 检查文件扩展名
+    if os.path.isfile(file_path) and filename.endswith('.' + intype) and filename.find("fixed") == -1:  # 检查文件扩展名
         print('\033[32m' + f"处理文件 {filename}  . . ." + '\033[0m')
-        filechage = 0
-        if  intype == 'otf':
-            output = filename.replace('.otf', '.ttf')
-        elif intype == 'ttf':
-            output = filename.replace('.ttf', '.otf')
-        fixname = filename.replace('.', 'fix.')
-        #filename = 'PingFangHK-Light.otf'
+        #filename = 'STHeitiSC-Medium.ttf'
+        fixname = filename.replace('.', '_fixed.')
+        font = TTFont(filename, recalcBBoxes=False, recalcTimestamp=False) #recalcBBoxes=False禁用自动重算边界框 recalcTimestamp=False
         #print(fdkutils.runShellCmd("tx -dump -0 \"%s\" 2>&1" % (filename)))
-        #fdkutils.runShellCmd("sfntedit -d DSIG \"%s\" 2>&1" % (filename)))
-        command = "sfntedit -c  \"%s\" 2>&1" % (filename)
-        report = fdkutils.runShellCmd(command)
-        if "failed" in report:
-            checkfont(filename)
-            checkfont(filename)
-            checkfont(filename)
-            print('\033[33m' + f"{filename} 文件校验已修正." + '\033[0m')
-        else:
-            print('\033[33m' + f"{filename} 文件校验\"通过\"." + '\033[0m')
-        font = TTFont(filename, recalcTimestamp=False, recalcBBoxes=False) #禁用自动重算边界框
-        name_table = font['name']
+        #fdkutils.runShellCmd("sfntedit -d DSIG \"%s\" 2>&1" % (filename))
         #print('\033[36m' + f"{fdkutils.runShellCmd("spot -t name \"%s\" | awk 'BEGIN {flag=0} /LangTag\\[index\\]/ {flag=1} {if (!flag) print}' 2>&1" % (filename))} ", end="")
-        #print(dir( name_table ), "\n")
-        #print(f" {name_table.names}")
-        #list(font.keys())
-        #print('\033[33m' + f"{font.keys()}" + '\033[36m', end="")
+        #font['head'].__dict__
+        #print('\033[33m' + f"{list(font.keys())}" + '\033[0m', end="")
+        name_table = font['name']
         name_list = []
         for name in name_table.names:
             name_list.append(f"{name.platformID}-{name.nameID} {name.langID}")
         #print(f" {name_list}")
         for record in name_table.names:
             #print(f"name表:平台: {record.platformID}, 平台编码: {record.platEncID}, 编码: {record.getEncoding()}, 语言: {record.langID:>4}, 命名ID: {record.nameID:>2}, 描述: {record.toUnicode()}")
-            #if record.nameID == 1 and record.platformID == 3:
-                #print(f"--PlatformID: {record.platformID}, EncodingID: {record.platEncID}, LanguageID: {record.langID}, NameID: {record.nameID}, String: {record.toUnicode()}")
             if record.langID == 19:
                 if "3-1 1028" not in name_list and "1-1 19" in name_list:
                     tc_record = NameRecord()
@@ -99,29 +81,9 @@ for filename in os.listdir(directory_path):
                     tc_record.langID = 1028  # 
                     tc_record.string = record.toUnicode().encode('utf-16-be')
                     name_table.names.append(tc_record)
-                    filechage += 1
-                    print('\033[33m' + f"添加Windows平台繁中 name {record.nameID}表" + '\033[0m')
-                if "x3-1 2052" in name_list:
-                    sc_record = NameRecord()
-                    sc_record.nameID = record.nameID  # 使用一个自定义的 nameID，通常是256以上
-                    sc_record.platformID = 3 # Windows平台
-                    sc_record.platEncID =1  # Unicode平台编码ID
-                    sc_record.langID = 2052  # 
-                    sc_record.string = t2s.convert(record.toUnicode()).encode('utf-16-be')
-                    name_table.names.append(sc_record)
-                    filechage += 1
-                    print('\033[33m' + f"添加Windows平台繁中 name {record.nameID}表转简中" + '\033[0m')
+                    filechage = 1
+                    print('\033[33m' + f"添加Windows平台繁中 name {record.nameID}表, 描述: {record.toUnicode()}" + '\033[0m')
             if record.langID == 33:
-                if "x3-1 1028" in name_list:
-                    tc_record = NameRecord()
-                    tc_record.nameID = record.nameID  # 使用一个自定义的 nameID，通常是256以上
-                    tc_record.platformID = 3 # Windows平台
-                    tc_record.platEncID =1  # Unicode平台编码ID
-                    tc_record.langID = 1028  # 
-                    tc_record.string = s2t.convert(record.toUnicode()).encode('utf-16-be')
-                    name_table.names.append(tc_record)
-                    filechage += 1
-                    print('\033[33m' + f"添加Windows平台简中 name {record.nameID}表转繁中" + '\033[0m')
                 if "3-1 2052" not in name_list and "1-1 33" in name_list:
                     sc_record = NameRecord()
                     sc_record.nameID = record.nameID  # 使用一个自定义的 nameID，通常是256以上
@@ -130,11 +92,33 @@ for filename in os.listdir(directory_path):
                     sc_record.langID = 2052  # 
                     sc_record.string = record.toUnicode().encode('utf-16-be')
                     name_table.names.append(sc_record)
-                    filechage += 1
-                    print('\033[33m' + f"添加Windows平台简中 name {record.nameID}表" + '\033[0m')
+                    filechage = 1
+                    print('\033[33m' + f"添加Windows平台简中 name {record.nameID}表, 描述: {record.toUnicode()}" + '\033[0m')
+            if record.langID == 11:
+                if "3-1 1041" not in name_list and "1-1 11" in name_list:
+                    sc_record = NameRecord()
+                    sc_record.nameID = record.nameID  # 使用一个自定义的 nameID，通常是256以上
+                    sc_record.platformID = 3 # Windows平台
+                    sc_record.platEncID =1  # Unicode平台编码ID
+                    sc_record.langID = 1041  # 
+                    sc_record.string = record.toUnicode().encode('utf-16-be')
+                    name_table.names.append(sc_record)
+                    filechage = 1
+                    print('\033[33m' + f"添加Windows平台日语 name {record.nameID}表, 描述: {record.toUnicode()}" + '\033[0m')
+            if record.langID == 23:
+                if "3-1 1042" not in name_list and "1-1 23" in name_list:
+                    sc_record = NameRecord()
+                    sc_record.nameID = record.nameID  # 使用一个自定义的 nameID，通常是256以上
+                    sc_record.platformID = 3 # Windows平台
+                    sc_record.platEncID =1  # Unicode平台编码ID
+                    sc_record.langID = 1042  # 
+                    sc_record.string = record.toUnicode().encode('utf-16-be')
+                    name_table.names.append(sc_record)
+                    filechage = 1
+                    print('\033[33m' + f"添加Windows平台韩语 name {record.nameID}表, 描述: {record.toUnicode()}" + '\033[0m')
             if record.langID == 0:
                 if not any("3-1" in elem for elem in name_list):
-                    if record.nameID  <  20:
+                    if record.nameID  <  100:
                         en_record = NameRecord()
                         en_record.nameID = record.nameID  # 使用一个自定义的 nameID，通常是256以上
                         en_record.platformID = 3 # Windows平台
@@ -142,79 +126,114 @@ for filename in os.listdir(directory_path):
                         en_record.langID = 1033  # 
                         en_record.string = record.toUnicode().encode('utf-16-be')
                         name_table.names.append(en_record)
-                        filechage += 1
-                        print('\033[33m' + f"添加Windows平台英文 name {record.nameID}表" + '\033[0m')
-        cmap_list = []
+                        filechage = 1
+                        print('\033[33m' + f"添加Windows平台英文 name {record.nameID}表, 描述: {record.toUnicode()}" + '\033[0m')
         print('\033[36m' + f"{fdkutils.runShellCmd("spot -t cmap \"%s\" | awk r'BEGIN {flag=0} /]=./ {flag=1} {if (!flag) print}' 2>&1" % (filename))} ", end="")
         #print('\033[36m' + f"{fdkutils.runShellCmd("spot -t cmap=11 \"%s\" 2>&1" % (filename))} ", end="")
-        tables = font['cmap'].tables
-        for index, table in enumerate(tables):
-           print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}" + '\033[0m')
-           cmap_list.append(f"{table.platformID}-{table.platEncID}")
+        cmap_list = []
+        cmap_table = font['cmap']
+        for index, table in enumerate(cmap_table.tables):
+            cmap_list.append(f"{table.platformID}-{table.platEncID}")
         #print(f"cmap{cmap_list}")
+        for index, table in enumerate(cmap_table.tables):
+            if not (table.platformID == 1 and table.platEncID == 0) and table.format == 2:
+                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}" + '\033[0m')
+                new_subtable = CmapSubtable.newSubtable(12)
+                new_subtable.platformID = table.platformID
+                new_subtable.platEncID = table.platEncID
+                new_subtable.language = table.language
+                new_subtable.cmap=table.cmap.copy()
+                #new_subtable.cmap = {}
+                #valid_glyph_names = set(font.getGlyphOrder())
+                #for codepoint, glyphName in table.cmap.items():
+                    #if not isinstance(glyphName, str):
+                        #glyphName = str(glyphName)
+                        #print(f"字形名称非字符串，已转换为字符串：{glyphName}")
+                    #if glyphName in valid_glyph_names:
+                        #new_subtable.cmap[codepoint] = glyphName
+                cmap_table.tables.remove(table)
+                cmap_table.tables.append(new_subtable)
+                filechage = 1
+                print('\033[31m' + f"\r格式2表{cmap_table.tables.index(new_subtable)}转格式12 平台:{new_subtable.platformID} 平台编码:{new_subtable.platEncID:>2} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}" + '\033[0m')
+            else:
+                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}" + '\033[0m')
         if any("3-" in elem for elem in cmap_list):
             print('\033[36m' + f"字体兼容Windows平台", '\033[0m')
         else:
             print('\033[36m' + f"字体无Windows平台数据", '\033[0m')
         print('\033[31m', end="")
-        force = 0
         if '0-3' in cmap_list and '0-4' in cmap_list:
             if '3-1' not in cmap_list:
-                table = font['cmap'].getcmap(0, 3)
-                table.platformID  = 3
-                table.platEncID  = 1
-                filechage += 1
-                print(f"修改 0 3 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
+                table = cmap_table.getcmap(0, 3)
+                new_subtable = CmapSubtable.newSubtable(table.format)
+                new_subtable.cmap=table.cmap.copy()
+                new_subtable.platformID = 3  # Microsoft
+                new_subtable.platEncID = 1   # Unicode BMP (UCS-2)
+                new_subtable.language = 0
+                cmap_table.tables.append(new_subtable)
+                filechage = 1
+                print(f"复制为表3 1 cmap 表{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
             if '3-10' not in cmap_list:
-                table = font['cmap'].getcmap(0, 4)
-                table.platformID  = 3
-                table.platEncID  = 10
-                filechage += 1
-                print(f"修改 0 4 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-        if '0-3' in cmap_list and '0-4' not in cmap_list:
-            if '3-1' not in cmap_list:
-                table = font['cmap'].getcmap(0, 3)
-                if font['cmap'].tables.index(table)==0:
-                    table.platformID  = 3
-                    table.platEncID  = 1
-                    filechage += 1
-                    #shutil.copyfile(filename, filename + '.' + time.strftime("%M%S"))
-                    print(f"尝试修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-        if 'x0-4' in cmap_list and '0-3' not in cmap_list:
-            if '3-1' not in cmap_list and '3-10' not in cmap_list:
-                table = font['cmap'].getcmap(0,4)
-                if font['cmap'].tables.index(table)==0:
-                    table.platformID  = 0
-                    table.platEncID  = 3
-                    filechage += 1
-                    #shutil.copyfile(filename, filename + '.' + time.strftime("%M%S"))
-                    print(f"尝试修改 cmap 表{font['cmap'].tables.index(table)} 改为 {table.platformID} {table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-        if 'x3-10' in cmap_list:
-            if '0-4' not in cmap_list:
-                if '1-1' in cmap_list:
-                    table = font['cmap'].getcmap(1, 1)
-                    table.platformID  = 3
-                    table.platEncID  = 2
-                    filechage += 1
-                    print(f"修改 1 1 japanese cmap 改为 {table.platformID} {table.platEncID} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-                if '1-2' in cmap_list:
-                    table = font['cmap'].getcmap(1, 2)
-                    table.platformID  = 3
-                    table.platEncID  = 4
-                    filechage += 1
-                    print(f"修改 1 2 trad_chinese cmap 改为 {table.platformID} {table.platEncID} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-                if '1-3' in cmap_list:
-                    table = font['cmap'].getcmap(1, 3)
-                    table.platformID  = 3
-                    table.platEncID  = 5
-                    filechage += 1
-                    print(f"修改 1 3 korean cmap 改为 {table.platformID} {table.platEncID} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
-                if '1-25' in cmap_list:
-                    table = font['cmap'].getcmap(1, 25)
-                    table.platformID  = 3
-                    table.platEncID  = 3
-                    filechage += 1
-                    print(f"修改 1 25 simp_chinese cmap改为 {table.platformID} {table.platEncID} 表格式:{table.format:>2} 编码:{table.getEncoding()} 表长:{table.length}")
+                table = cmap_table.getcmap(0, 4)
+                new_subtable = CmapSubtable.newSubtable(table.format)
+                new_subtable.cmap=table.cmap.copy()
+                new_subtable.platformID = 3  # Microsoft
+                new_subtable.platEncID = 10   # Unicode BMP (UCS-2)
+                new_subtable.language = 0
+                cmap_table.tables.append(new_subtable)
+                filechage = 1
+                print(f"复制为表3 10 cmap 表{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
+        elif '3-1' not in cmap_list:
+            if '3-10' not in cmap_list:
+                if '0-4' in cmap_list:
+                    table = cmap_table.getcmap(0, 4)
+                elif '0-3' in cmap_list and cmap_table.getcmap(0, 3).format==12:
+                    table = cmap_table.getcmap(0, 3)
+                    #table.platEncID = 4
+                new_subtable = CmapSubtable.newSubtable(12)
+                new_subtable.cmap=table.cmap.copy()
+                new_subtable.platformID = 3  # Microsoft
+                new_subtable.platEncID = 10   # Unicode BMP (UCS-2)
+                new_subtable.language = 0
+                cmap_table.tables.append(new_subtable)
+                filechage = 1
+                print(f"复制为表3 10 cmap 表{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
+            # 创建新的 cmap_format_4 子表
+            new_subtable = CmapSubtable.newSubtable(4)
+            new_subtable.platformID = 3  # Microsoft
+            new_subtable.platEncID = 1   # Unicode BMP (UCS-2)
+            new_subtable.language = 0
+            new_subtable.cmap = {}
+            # 获取字体中的所有有效字形名称
+            valid_glyph_names = set(font.getGlyphOrder())
+            num_glyphs = len(valid_glyph_names)
+            print(f"字体中包含 {num_glyphs} 个字形。")
+            # 合并所有 Unicode 子表的映射到新的子表中，过滤掉码位大于 0xFFFF 的字符
+            for subtable in cmap_table.tables:
+                if subtable.isUnicode():
+                    for codepoint, glyphName in subtable.cmap.items():
+                        if codepoint <= 0xFFFF:
+                            # 确保 glyphName 是字符串类型
+                            if not isinstance(glyphName, str):
+                                glyphName = str(glyphName)
+                                print(f"字形名称非字符串，已转换为字符串：{glyphName}")
+                            # 检查字形名称是否在字体中
+                            if glyphName in valid_glyph_names:
+                                # 获取字形索引并检查范围
+                                glyphID = font.getGlyphID(glyphName)
+                                if 0 <= glyphID <= 65535:
+                                    new_subtable.cmap[codepoint] = glyphName
+                                else:
+                                    print(f"字形 '{glyphName}' 的索引 {glyphID} 超出有效范围（0-65535），跳过此映射。")
+                            else:
+                                print(f"未找到字形名称 '{glyphName}'，跳过此映射。")
+                        else:
+                            #print(f"码位 {codepoint} 超出 0xFFFF，跳过此映射。")
+                            pass
+            # 添加新的子表到 cmap 表
+            cmap_table.tables.append(new_subtable)
+            print(f"已添加 cmap_format_4 子表 字数 {len(new_subtable.cmap)} 提高 Windows 兼容性。")
+            filechage = 1
         print('\033[0m', end="")
         #print("Family Name:", font['name'].getBestFamilyName())  # 如 "HarmonyOS Sans"
         #print("Full Name:", font['name'].getBestFullName())
@@ -227,12 +246,23 @@ for filename in os.listdir(directory_path):
         #print(dir( font ), "\n")
         #font.save(output)
         #print(f"Converted {filename} to {output}")
-        #print(f"文件状态 {filechage}")
-        if filechage != 0:
-            font.save(fixname)
-            print('\033[33m' + f"{filename} table 修改已保存\n" + '\033[0m')
+        #font.saveXML(filename[:-4] +".xml")
+        command = "sfntedit -c  \"%s\" 2>&1" % (filename)
+        report = fdkutils.runShellCmd(command)
+        if 'filechage' in globals():
+            try:
+                font.save(fixname)
+                font.close()
+                print('\033[33m' + f"{filename} 修改已保存\n" + '\033[0m')
+            except Exception as e:
+                print('\033[31m' + f"{filename} 保存出错，建议从其他来源找字体{name_table.getDebugName(6)}\n" + '\033[0m', traceback.format_exc())
+        elif "failed" in report:
+            checkfont(filename)
+            checkfont(filename)
+            checkfont(filename)
+            print('\033[33m' + f"{filename} 文件校验已修正." + '\033[0m')
         else:
-            print('\033[33m' + f"{filename} table 不作改动。\n" + '\033[0m')
+            print('\033[33m' + f"{filename} 兼容windows不作改动。\n" + '\033[0m')
         #font.save(filename)
         #print(f" { font['name'].names}")
 
