@@ -135,32 +135,6 @@ for filename in os.listdir(directory_path):
         for index, table in enumerate(cmap_table.tables):
             cmap_list.append(f"{table.platformID}-{table.platEncID}")
         #print(f"cmap{cmap_list}")
-        for index, table in enumerate(cmap_table.tables):
-            if not (table.platformID == 1 and table.platEncID == 0) and table.format == 2:
-                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}" + '\033[0m')
-                new_subtable = CmapSubtable.newSubtable(12)
-                new_subtable.platformID = table.platformID
-                new_subtable.platEncID = table.platEncID
-                new_subtable.language = table.language
-                new_subtable.cmap=table.cmap.copy()
-                #new_subtable.cmap = {}
-                #valid_glyph_names = set(font.getGlyphOrder())
-                #for codepoint, glyphName in table.cmap.items():
-                    #if not isinstance(glyphName, str):
-                        #glyphName = str(glyphName)
-                        #print(f"字形名称非字符串，已转换为字符串：{glyphName}")
-                    #if glyphName in valid_glyph_names:
-                        #new_subtable.cmap[codepoint] = glyphName
-                cmap_table.tables.remove(table)
-                cmap_table.tables.append(new_subtable)
-                filechage = 1
-                print('\033[31m' + f"\r格式2表{cmap_table.tables.index(new_subtable)}转格式12 平台:{new_subtable.platformID} 平台编码:{new_subtable.platEncID:>2} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}" + '\033[0m')
-            else:
-                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}" + '\033[0m')
-        if any("3-" in elem for elem in cmap_list):
-            print('\033[36m' + f"字体兼容Windows平台", '\033[0m')
-        else:
-            print('\033[36m' + f"字体无Windows平台数据", '\033[0m')
         print('\033[31m', end="")
         if '0-3' in cmap_list and '0-4' in cmap_list:
             if '3-1' not in cmap_list:
@@ -234,6 +208,28 @@ for filename in os.listdir(directory_path):
             cmap_table.tables.append(new_subtable)
             print(f"已添加 cmap_format_4 子表 字数 {len(new_subtable.cmap)} 提高 Windows 兼容性。")
             filechage = 1
+        for index, table in enumerate(cmap_table.tables):
+            if not (table.platformID == 1 and table.platEncID == 0) and table.format == 2:
+                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)}" + '\033[0m')
+                new_subtable = CmapSubtable.newSubtable(12)
+                new_subtable.platformID = table.platformID
+                new_subtable.platEncID = table.platEncID
+                new_subtable.language = table.language
+                new_subtable.cmap=table.cmap.copy()
+                #new_subtable.cmap = {}
+                #valid_glyph_names = set(font.getGlyphOrder())
+                #for codepoint, glyphName in table.cmap.items():
+                    #if not isinstance(glyphName, str):
+                        #glyphName = str(glyphName)
+                        #print(f"字形名称非字符串，已转换为字符串：{glyphName}")
+                    #if glyphName in valid_glyph_names:
+                        #new_subtable.cmap[codepoint] = glyphName
+                cmap_table.tables.remove(table)
+                cmap_table.tables.append(new_subtable)
+                filechage = 1
+                print('\033[31m' + f"\r格式2表{cmap_table.tables.index(new_subtable)}转格式12 平台:{new_subtable.platformID} 平台编码:{new_subtable.platEncID:>2} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}" + '\033[0m')
+            else:
+                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} " + '\033[0m')
         print('\033[0m', end="")
         #print("Family Name:", font['name'].getBestFamilyName())  # 如 "HarmonyOS Sans"
         #print("Full Name:", font['name'].getBestFullName())
