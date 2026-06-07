@@ -32,3 +32,4 @@ site-packages/afdko/otc2otf.py
             save_path = os.path.join(os.path.dirname(ttc_path), font_filename)
             if not font_filename.startswith("."):
                 font.save(save_path)
+靠搜索代码写的程序，屎味巧克力请慢用
