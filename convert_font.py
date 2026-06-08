@@ -55,10 +55,11 @@ if intype == 'ttc':
     sys.exit(1)
 for filename in os.listdir(directory_path):
     file_path = os.path.join(directory_path, filename)
-    if os.path.isfile(file_path) and filename.endswith('.' + intype) and filename.find("fixed") == -1:  # 检查文件扩展名
-        print('\033[35m' + f"-----处理文件 {filename} -----" + '\033[0m')
+    if os.path.isfile(file_path) and filename.endswith('.' + intype):
+    #if os.path.isfile(file_path) and filename.endswith('.' + intype) and filename.find("fixed") == -1:  # 检查文件扩展名
+        print('\033[35m' + f"----- 处理文件 {filename} -----" + '\033[0m')
         filechage = 0
-        #filename = 'STHeitiSC-Medium.ttf'
+        #filename = 'STLibianTC-Regular.ttf'
         fixname = filename.replace('.', '_fixed.')
         font = TTFont(filename, recalcBBoxes=False, recalcTimestamp=False) #recalcBBoxes=False禁用自动重算边界框 recalcTimestamp=False
         #print(fdkutils.runShellCmd("tx -dump -0 \"%s\" 2>&1" % (filename)))
@@ -134,7 +135,7 @@ for filename in os.listdir(directory_path):
         cmap_list = []
         cmap_table = font['cmap']
         for index, table in enumerate(cmap_table.tables):
-            print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}" + '\033[0m')
+            print('\033[33m' + f"\rcmap表>{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}" + '\033[0m')
             cmap_list.append(f"{table.platformID}-{table.platEncID}")
         #print(f"cmap{cmap_list}")
         print('\033[31m', end="")
@@ -148,7 +149,7 @@ for filename in os.listdir(directory_path):
                 new_subtable.language = 0
                 cmap_table.tables.append(new_subtable)
                 filechage += 1
-                print(f"\r复制为表3 1 cmap表{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
+                print(f"\r复制为表3 1 cmap表>{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
             if '3-10' not in cmap_list:
                 table = cmap_table.getcmap(0, 4)
                 new_subtable = CmapSubtable.newSubtable(table.format)
@@ -158,7 +159,34 @@ for filename in os.listdir(directory_path):
                 new_subtable.language = 0
                 cmap_table.tables.append(new_subtable)
                 filechage += 1
-                print(f"\r复制为表3 10 cmap表{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
+                print(f"\r复制为表3 10 cmap表>{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
+        elif cmap_table.tables[0].format==12 and cmap_table.tables[0].platformID==0:
+            if '3-1' not in cmap_list:
+                if '3-10' in cmap_list:
+                    table = cmap_table.getcmap(3 , 10)
+                else:
+                    table = cmap_table.tables[0]
+                new_subtable = CmapSubtable.newSubtable(4)
+                new_subtable.platformID = 3
+                new_subtable.platEncID = 1
+                new_subtable.language = 0
+                new_subtable.cmap={}
+                for codepoint, glyphName in table.cmap.items():
+                    if codepoint <= 0xFFFF:
+                        new_subtable.cmap[codepoint] = glyphName
+                cmap_table.tables.append(new_subtable)
+                print(f"\r重编{table.platformID} {table.platEncID} 表到3 1表 表格式:{new_subtable.format} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}") 
+                filechage += 1
+            if '3-10' not in cmap_list:
+                table = cmap_table.tables[0]
+                new_subtable = CmapSubtable.newSubtable(12)
+                new_subtable.cmap=table.cmap.copy()
+                new_subtable.platformID = 3  # Microsoft
+                new_subtable.platEncID = 10   # Unicode BMP (UCS-2)
+                new_subtable.language = 0
+                cmap_table.tables.append(new_subtable)
+                filechage += 1
+                print(f"\r复制为表3 10 cmap表>{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
         elif '3-1' not in cmap_list:
             if '3-10' not in cmap_list:
                 if '0-4' in cmap_list:
@@ -173,7 +201,7 @@ for filename in os.listdir(directory_path):
                 new_subtable.language = 0
                 cmap_table.tables.append(new_subtable)
                 filechage += 1
-                print(f"\r拷作3 10 cmap表{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
+                print(f"\r复制为表3 10 cmap表>{cmap_table.tables.index(table)} {table.platformID} {table.platEncID} 表格式:{table.format} 编码:{table.getEncoding()} 字数:{len(table.cmap)} 表长:{table.length}")
             # 创建新的 cmap_format_4 子表
             new_subtable = CmapSubtable.newSubtable(4)
             new_subtable.platformID = 3  # Microsoft
@@ -197,7 +225,7 @@ for filename in os.listdir(directory_path):
                             if glyphName in valid_glyph_names:
                                 # 获取字形索引并检查范围
                                 glyphID = font.getGlyphID(glyphName)
-                                if 0 <= glyphID <= 65535:
+                                if 0 <= glyphID <= 0xFFFF:
                                     new_subtable.cmap[codepoint] = glyphName
                                 else:
                                     print(f"字形 '{glyphName}' 的索引 {glyphID} 超出有效范围（0-65535），跳过此映射。")
@@ -212,7 +240,7 @@ for filename in os.listdir(directory_path):
             filechage += 1
         for index, table in enumerate(cmap_table.tables):
             if not (table.platformID == 1 and table.platEncID == 0) and table.format == 2 and '3-1' not in cmap_list:
-                print('\033[33m' + f"\rcmap表{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)}" + '\033[0m')
+                print('\033[33m' + f"\rcmap表>{index} 平台:{table.platformID} 平台编码:{table.platEncID:>2} 表格式:{table.format:>2} 编码:{table.getEncoding()} 字数:{len(table.cmap)}" + '\033[0m')
                 new_subtable = CmapSubtable.newSubtable(12)
                 new_subtable.platformID = table.platformID
                 new_subtable.platEncID = table.platEncID
@@ -229,7 +257,7 @@ for filename in os.listdir(directory_path):
                 cmap_table.tables.remove(table)
                 cmap_table.tables.append(new_subtable)
                 filechage += 1
-                print('\033[31m' + f"\r格式2表{cmap_table.tables.index(new_subtable)}转格式12 平台:{new_subtable.platformID} 平台编码:{new_subtable.platEncID:>2} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}" + '\033[0m')
+                print('\033[31m' + f"\r格式2表>{cmap_table.tables.index(new_subtable)}转格式12 平台:{new_subtable.platformID} 平台编码:{new_subtable.platEncID:>2} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}" + '\033[0m')
             else:
                 pass
         print('\033[0m', end="")
@@ -249,9 +277,13 @@ for filename in os.listdir(directory_path):
         report = fdkutils.runShellCmd(command)
         if not filechage == 0:
             try:
-                font.save(fixname)
-                font.close()
-                print('\033[33m' + f"{filename} 修改已保存\n" + '\033[0m')
+                #if not os.path.exists(fixname):
+                if os.path.exists(filename):
+                    font.save(fixname)
+                    font.close()
+                    print('\033[33m' + f"{filename} 修改已保存\n" + '\033[0m')
+                else:
+                    print('\033[32m' + f"{fixname} 已存在  \n" + '\033[0m')
             except Exception as e:
                 print('\033[31m' + f"{filename} 保存出错，建议从其他来源找字体{name_table.getDebugName(6)}\n" + '\033[0m', traceback.format_exc())
         elif "failed" in report:
