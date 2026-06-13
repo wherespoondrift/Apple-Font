@@ -171,11 +171,13 @@ for filename in os.listdir(directory_path):
                 new_subtable.platEncID = 1
                 new_subtable.language = 0
                 new_subtable.cmap={}
-                for codepoint, glyphName in table.cmap.items():
-                    if codepoint <= 0xFFFF:
-                        new_subtable.cmap[codepoint] = glyphName
+                for subtable in font['cmap'].tables:
+                    if subtable.isUnicode():
+                        for codepoint, name in subtable.cmap.items():
+                            if codepoint <= 0xFFFF :
+                                new_subtable.cmap[codepoint] = name
                 cmap_table.tables.append(new_subtable)
-                print(f"\r重编{table.platformID} {table.platEncID} 表到3 1表 表格式:{new_subtable.format} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}") 
+                print(f"\r添加Windows平台3 1表 表格式:{new_subtable.format} 编码:{new_subtable.getEncoding()} 字数:{len(new_subtable.cmap)}") 
                 filechage += 1
             if '3-10' not in cmap_list:
                 table = cmap_table.tables[0]
@@ -208,33 +210,12 @@ for filename in os.listdir(directory_path):
             new_subtable.platEncID = 1   # Unicode BMP (UCS-2)
             new_subtable.language = 0
             new_subtable.cmap = {}
-            # 获取字体中的所有有效字形名称
-            valid_glyph_names = set(font.getGlyphOrder())
-            num_glyphs = len(valid_glyph_names)
-            print(f"字体中包含 {num_glyphs} 个字形。")
             # 合并所有 Unicode 子表的映射到新的子表中，过滤掉码位大于 0xFFFF 的字符
-            for subtable in cmap_table.tables:
+            for subtable in font['cmap'].tables:
                 if subtable.isUnicode():
-                    for codepoint, glyphName in subtable.cmap.items():
-                        if codepoint <= 0xFFFF:
-                            # 确保 glyphName 是字符串类型
-                            if not isinstance(glyphName, str):
-                                glyphName = str(glyphName)
-                                print(f"字形名称非字符串，已转换为字符串：{glyphName}")
-                            # 检查字形名称是否在字体中
-                            if glyphName in valid_glyph_names:
-                                # 获取字形索引并检查范围
-                                glyphID = font.getGlyphID(glyphName)
-                                if 0 <= glyphID <= 0xFFFF:
-                                    new_subtable.cmap[codepoint] = glyphName
-                                else:
-                                    print(f"字形 '{glyphName}' 的索引 {glyphID} 超出有效范围（0-65535），跳过此映射。")
-                            else:
-                                print(f"未找到字形名称 '{glyphName}'，跳过此映射。")
-                        else:
-                            #print(f"码位 {codepoint} 超出 0xFFFF，跳过此映射。")
-                            pass
-            # 添加新的子表到 cmap 表
+                    for codepoint, name in subtable.cmap.items():
+                        if codepoint <= 0xFFFF :
+                            new_subtable.cmap[codepoint] = name
             cmap_table.tables.append(new_subtable)
             print(f"已添加 cmap_format_4 子表 字数 {len(new_subtable.cmap)} 提高 Windows 兼容性。")
             filechage += 1
@@ -279,7 +260,7 @@ for filename in os.listdir(directory_path):
             try:
                 #if not os.path.exists(fixname):
                 if os.path.exists(filename):
-                    font.save(fixname)
+                    font.save(filename)
                     font.close()
                     print('\033[33m' + f"{filename} 修改已保存\n" + '\033[0m')
                 else:
@@ -308,16 +289,4 @@ for filename in os.listdir(directory_path):
 #for file in *tf ; do  echo -e "\033[33m--- $file ---\033[0m";spot -t name $file | awk 'BEGIN {flag=0} /LangTag\[index\]=/ {flag=1} {if (!flag) print}';spot -tcmap=11 $file;spot -t cmap $file | awk 'BEGIN {flag=0} /\]=./ {flag=1} {if (!flag) print}';done
 #for file in *tf ; do  echo -e "\033[33m--- $file ---\033[0m";sfntedit -c $file;spot -T $file ;spot -tcmap=11 $file;spot -t cmap $file | awk 'BEGIN {flag=0} /\]=./ {flag=1} {if (!flag) print}';done
 #for file in *tf ; do  echo -e "\033[33m--- $file ---";echo -ne "`sfntedit -c $file`\033[0m";spot -tcmap=11 $file;spot -t cmap $file | awk 'BEGIN {flag=0} /\]=./ {flag=1} {if (!flag) print}';done
-#from fontTools.ttLib import TTFont
-#import fontTools.merge as merge
- 
-# 加载字体并保留原始时间戳
-#font1 = TTFont("font1.ttf", recalcTimestamp=False, recalcBBoxes=False)
-#font2 = TTFont("font2.ttf", recalcTimestamp=False, recalcBBoxes=False)
- 
-# 合并字体
-#merger = merge.Merger()
-#merged_font = merger.merge([font1, font2])
- 
-# 保存合并结果，保持时间戳
-#merged_font.save("merged.ttf")
+#font.saveXML("temp2.xml",tables=["name"])
