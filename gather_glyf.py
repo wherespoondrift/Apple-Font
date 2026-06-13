@@ -1,8 +1,9 @@
 from fontTools.ttLib import TTCollection, TTFont, TTLibError, newTable
 from fontTools.ttLib.tables._g_l_y_f import Glyph
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates, GlyphComponent
-import sys, os, shutil
+import sys, os, shutil, re
 from afdko import fdkutils
+import binascii
 
 def update_hmtx(ttFont, glyf):
     hmtx = ttFont['hmtx']
@@ -123,12 +124,20 @@ cmap_pname = set(trCmap.keys())
 cmap_pname2 = set(trCmap2.keys())
 
 for glyph_name, glyph_data in font['glyf'].glyphs.items():
-     if glyph_name not in cmap_pname and glyph_name.upper().startswith('UNI') and '.' not in glyph_name:
-         print('\033[33m' + f"{sys.argv[1]} 发现未映射uni字形 {glyph_name}" + '\033[0m')
+     if glyph_name not in cmap_pname and glyph_name.upper().startswith('U'):
+         g = glyph_name.upper().lstrip('UNI').lstrip('U')
+         if re.match(r'^[a-fA-F0-9]+$', g) is not None:
+            #print(glyph_name)
+            ns=int(g, 16)
+            print('\033[33m' + f"{sys.argv[1]} 存在未映射uni字形 {glyph_name} {ns.to_bytes(4).decode('utf-16-be')}" + '\033[0m')
 
 for glyph_name, glyph_data in font2['glyf'].glyphs.items():
-     if glyph_name not in cmap_pname2 and glyph_name.upper().startswith('UNI') and '.' not in glyph_name:
-         print('\033[33m' + f"{sys.argv[2]} 发现未映射uni字形 {glyph_name} " + '\033[0m')
+     if glyph_name not in cmap_pname2 and glyph_name.upper().startswith('U'):
+         g = glyph_name.upper().lstrip('UNI').lstrip('U')
+         if re.match(r'^[a-fA-F0-9]+$', g) is not None:
+            #print(glyph_name)
+            ns=int(g, 16)
+            print('\033[33m' + f"{sys.argv[2]} 存在未映射uni字形 {glyph_name} {ns.to_bytes(4).decode('utf-16-be')}" + '\033[0m')
 
 #os.system('clear')
 ch = 0
@@ -146,7 +155,7 @@ for subtable in font2['cmap'].tables:
                         #print('\033[33m' + f"添加 {"{:0x}".format(codepoint)}  {glyph_name} 到 camp 3-1 映射表" + '\033[0m')
                 if codepoint not in BestCmap.cmap.keys():
                     BestCmap.cmap[codepoint] = glyph_name
-                    print('\033[33m' + f"添加 {"{:0x}".format(codepoint).upper()}  {glyph_name} 到 camp 3-10 映射表" + '\033[0m')
+                    print('\033[33m' + f"添加 {"{:0x}".format(codepoint).upper()} {codepoint.to_bytes(4).decode('utf-16-be')} {name} {glyph_name} 到 camp 3-10 映射表" + '\033[0m')
                     if codepoint not in allcmp.keys():
                         if glyph_name in seen_glyphs:
                             name = "uid{:0x}".format(codepoint)
@@ -160,7 +169,7 @@ for subtable in font2['cmap'].tables:
                             font['glyf'].glyphs[name] = glyph
                             #font['maxp'].numGlyphs += 1  # 更新最大字形数
                             font['glyf'].glyphOrder.append(name)
-                            print('\033[32m' + f"添加 {"{:0x}".format(codepoint).upper()} {name} 字形到glyf表 " + '\033[0m')
+                            print('\033[32m' + f"添加 {"{:0x}".format(codepoint).upper()} {codepoint.to_bytes(4).decode('utf-16-be')} {name} 字形到glyf表 " + '\033[0m')
                             #if hasattr(glyph, 'xMin'):
                             font["hmtx"][name] = font2["hmtx"][glyph_name]
                             try:
