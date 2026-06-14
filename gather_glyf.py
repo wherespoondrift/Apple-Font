@@ -155,7 +155,7 @@ for subtable in font2['cmap'].tables:
                         #print('\033[33m' + f"添加 {"{:0x}".format(codepoint)}  {glyph_name} 到 camp 3-1 映射表" + '\033[0m')
                 if codepoint not in BestCmap.cmap.keys():
                     BestCmap.cmap[codepoint] = glyph_name
-                    print('\033[33m' + f"添加 {"{:0x}".format(codepoint).upper()} {codepoint.to_bytes(4).decode('utf-16-be')} {name} {glyph_name} 到 camp 3-10 映射表" + '\033[0m')
+                    print('\033[33m' + f"添加 {"{:0x}".format(codepoint).upper()}   {codepoint.to_bytes(4).decode('utf-16-be')}   {name} {glyph_name} 到 camp 3-10 映射表" + '\033[0m')
                     if codepoint not in allcmp.keys():
                         if glyph_name in seen_glyphs:
                             name = "uid{:0x}".format(codepoint)
@@ -169,7 +169,7 @@ for subtable in font2['cmap'].tables:
                             font['glyf'].glyphs[name] = glyph
                             #font['maxp'].numGlyphs += 1  # 更新最大字形数
                             font['glyf'].glyphOrder.append(name)
-                            print('\033[32m' + f"添加 {"{:0x}".format(codepoint).upper()} {codepoint.to_bytes(4).decode('utf-16-be')} {name} 字形到glyf表 " + '\033[0m')
+                            print('\033[32m' + f"添加 {"{:0x}".format(codepoint).upper()}   {codepoint.to_bytes(4).decode('utf-16-be')}   {name} 字形到glyf表 " + '\033[0m')
                             #if hasattr(glyph, 'xMin'):
                             font["hmtx"][name] = font2["hmtx"][glyph_name]
                             try:
